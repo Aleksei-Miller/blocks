@@ -4,8 +4,8 @@ A tool to extract, replace the missions of the games Driver: You Are The Driver,
 <h3>Supported versions:</h3>
   <ul>
     <li>Driver: You are Wheelman</li>
-    <li>>Driver 2: Demo</li>
     <li>Driver 2: Back on the Streets</li>
+    <li>Driver 2: Demo</li>
   </ul>
 
 <h3>Screenshoots</h3>
