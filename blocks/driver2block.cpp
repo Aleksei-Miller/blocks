@@ -66,55 +66,83 @@ bool Driver2Block::setData(const QByteArray &data)
 {
     m_missions.clear();
 
+    if(data.size() < 2048)
+        return false;
+
     QDataStream dataStream(data);
     dataStream.setByteOrder(QDataStream::LittleEndian);
 
-    quint32 header[maxMissions];
-    dataStream.readRawData(reinterpret_cast<char*>(&header), sizeof(header));
+    //Check version
+    dataStream.device()->seek(312);
 
-    qint32 offset, length;
+    qint32 magic;
+    dataStream >> magic;
 
-    for (int i = 0; i < maxMissions ; i++) {
+    //Demo version
+    if (magic == 21037568) {
+        //(2 bytes offset + 2 bytes length) * maxMissions
+        int startDataOffset = 2048;
+        dataStream.device()->seek(startDataOffset);
+
         MissionEntry entry = {};
 
-        entry.id = i;
-
-        if (header[i] > 0) {
-            offset = header[i] & 0x7ffff;
-            length = header[i] >> 19;
-
-            if (offset > data.size() || length > data.size()) {
-                m_missions.clear();
-                return false;
-            }
-
-            //Read mission data
-            dataStream.device()->seek(offset);
-            entry.data = dataStream.device()->read(length);
-
-            entry.mode = missionMode(i);
-        }
+        entry.id = 0;
+        entry.name = tr("Demo game");
+        entry.mode = GameMode::None;
+        entry.data = dataStream.device()->read(data.size() - startDataOffset);
 
         parseMission(entry);
-
         m_missions << entry;
-    }
 
-    if (m_missionNames.count() == 37) {
-        for (int i = 1; i < 8; i++) {
-            m_missions[i].name = m_missionNames.at(i - 1);
+    } else {
+        dataStream.device()->seek(0);
+
+        quint32 header[maxMissions];
+        dataStream.readRawData(reinterpret_cast<char*>(&header), sizeof(header));
+
+        qint32 offset, length;
+
+        for (int i = 0; i < maxMissions ; i++) {
+            MissionEntry entry = {};
+
+            entry.id = i;
+
+            if (header[i] > 0) {
+                offset = header[i] & 0x7ffff;
+                length = header[i] >> 19;
+
+                if (offset > data.size() || length > data.size()) {
+                    m_missions.clear();
+                    return false;
+                }
+
+                //Read mission data
+                dataStream.device()->seek(offset);
+                entry.data = dataStream.device()->read(length);
+
+                entry.mode = missionMode(i);
+            }
+
+            parseMission(entry);
+
+            m_missions << entry;
         }
-        for (int i = 9; i < 12; i++) {
-            m_missions[i].name = m_missionNames.at(i - 2);
-        }
-        for (int i = 13; i < 36; i++) {
-            m_missions[i].name = m_missionNames.at(i - 3);
-        }
-        for (int i = 37; i < 41; i++) {
-            m_missions[i].name = m_missionNames.at(i - 4);
+
+        if (m_missionNames.count() == 37) {
+            for (int i = 1; i < 8; i++) {
+                m_missions[i].name = m_missionNames.at(i - 1);
+            }
+            for (int i = 9; i < 12; i++) {
+                m_missions[i].name = m_missionNames.at(i - 2);
+            }
+            for (int i = 13; i < 36; i++) {
+                m_missions[i].name = m_missionNames.at(i - 3);
+            }
+            for (int i = 37; i < 41; i++) {
+                m_missions[i].name = m_missionNames.at(i - 4);
+            }
         }
     }
-
     return true;
 }
 
