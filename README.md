@@ -1,10 +1,10 @@
 # Blocks
-A tool to extract, replace the missions of the games Driver: You Are The Driver, Driver 2: Back On The Streets.
+A tool to extract, replace the missions of the games Driver: You Are The Wheelman, Driver 2: The Wheelman Is Back.
 
 <h3>Supported versions:</h3>
   <ul>
-    <li>Driver: You are Wheelman</li>
-    <li>Driver 2: Back on the Streets</li>
+    <li>Driver: You Are The Wheelman</li>
+    <li>Driver 2: The Wheelman Is Back</li>
     <li>Driver 2: Pre Release</li>
     <li>Driver 2: Demo*</li>
   </ul>
