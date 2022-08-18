@@ -218,12 +218,11 @@ bool BlockTableModel::writeFileData(const QString &path, const QByteArray &buffe
         emit error(tr("Can't write file") +
                    " " +
                    QDir::toNativeSeparators(path));
-
         return false;
     }
 
     if (!saveFile.commit()) {
-        emit error(tr("Can't commit file") +
+        emit error(tr("Can't commit changes") +
                    " " +
                    QDir::toNativeSeparators(path));
         return false;
