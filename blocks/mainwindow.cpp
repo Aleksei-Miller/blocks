@@ -9,6 +9,7 @@ MainWindow::MainWindow(const QString &path, QWidget *parent)
 
     //Model
     m_model = new BlockTableModel(this);
+    QObject::connect(m_model, SIGNAL(error(const QString &)), this, SLOT(showError(const QString &)));
 
     m_proxyModel = new QSortFilterProxyModel(this);
     m_proxyModel->setSourceModel(m_model);
@@ -55,60 +56,7 @@ void MainWindow::on_actionOpen_triggered()
         return;
     }
 
-    m_path = "";
-    setWindowTitle("Blocks");
-
-    QFile file(path);
-
-    if (!file.open(QIODevice::ReadOnly)) {
-        QMessageBox::critical(this,
-                              tr("Error"),
-                              tr("Can't open file in read mode") +
-                              " " +
-                              QDir::toNativeSeparators(m_path));
-        return;
-    }
-
-    const QByteArray data = file.readAll();
-
-    file.close();
-
-    //Driver 2 mission names
-    QDir dir(QFileInfo(path).absolutePath());
-    dir.cdUp();
-
-    file.setFileName(dir.path() + "/LANG/EN_MISSION.LTXT");
-
-    QString missionNames;
-
-    if (file.open(QIODevice::ReadOnly))
-        missionNames = file.readAll();
-
-    if (!m_model->setBlockData(data, missionNames)) {
-        QMessageBox::critical(this,
-                              tr("Error"),
-                              tr("Can't parse data") +
-                              " " +
-                              QDir::toNativeSeparators(path));
-        return;
-    }
-
-    //Filter
-    ui->comboBoxGameMode->clear();
-    ui->comboBoxGameMode->addItems(m_model->gameModeList());
-
-    int value = m_settings->value("latest_game_mode", "0").toInt();
-    int index = (value > -1 && value < ui->comboBoxGameMode->count()) ? value : 0;
-
-    ui->comboBoxGameMode->setCurrentIndex(index);
-    emit ui->comboBoxGameMode->activated(ui->comboBoxGameMode->currentIndex());
-
-    //
-    m_path = path;
-
-    setWindowTitle(QDir::toNativeSeparators(path));
-
-    m_settings->setValue("block_path", m_path);
+    setBlockFile(path);
 }
 
 
@@ -133,45 +81,22 @@ void MainWindow::on_actionExport_triggered()
             return;
         }
 
-        QSaveFile saveFile(path);
-
-        if (!saveFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-            QMessageBox::critical(this,
-                                  tr("Error"),
-                                  tr("Can't open file in write mode") +
-                                  " " +
-                                  QDir::toNativeSeparators(path));
-            return;
-        }
-
-        const QByteArray *data = m_model->missionData(index);
-
-        if (data != nullptr && (saveFile.write(*data) == -1 || !saveFile.commit())) {
-            QMessageBox::critical(this,
-                                  tr("Error"),
-                                  tr("Can't write file") +
-                                  " " +
-                                  QDir::toNativeSeparators(path));
-            return;
-        }
+        m_model->exportMission(index, path);
 
         m_settings->setValue("export_path", QFileInfo(path).absolutePath());
+
     }
 }
-
 
 void MainWindow::on_comboBoxGameMode_activated(int index)
 {
-    if (index == 0) {
+    if (index == 0)
         m_proxyModel->setFilterFixedString("");
-    }
-    else {
+    else
         m_proxyModel->setFilterRegExp("^" + QString().setNum(index) + "$");
-    }
 
     m_settings->setValue("latest_game_mode", ui->comboBoxGameMode->currentIndex());
 }
-
 
 void MainWindow::on_actionImport_triggered()
 {
@@ -194,41 +119,19 @@ void MainWindow::on_actionImport_triggered()
             return;
         }
 
-        setBlockFile(path);
+        m_model->importMission(index, path);
+
+        setWindowTitle('*' + QDir::toNativeSeparators(m_model->path()));
+
+        m_settings->setValue("import_path", QFileInfo(path).absolutePath());
     }
 }
 
 void MainWindow::on_actionSave_triggered()
 {
-    if (m_path == "")
-        return;
-
-    QSaveFile saveFile(m_path);
-
-    if (!saveFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-        QMessageBox::critical(this,
-                              tr("Error"),
-                              tr("Can't open file in write mode") +
-                              " " +
-                              QDir::toNativeSeparators(m_path));
-        return;
-    }
-
-    const QByteArray data = m_model->blockData();
-
-    if ((saveFile.write(data) == -1) || !saveFile.commit()) {
-        QMessageBox::critical(this,
-                              tr("Error"),
-                              tr("Can't write file") +
-                              " " +
-                              QDir::toNativeSeparators(m_path));
-        return;
-    }
-
-    setWindowTitle(QDir::toNativeSeparators(m_path));
+    if (m_model->sync())
+        setWindowTitle(QDir::toNativeSeparators(m_model->path()));
 }
-
-
 
 void MainWindow::on_actionAbout_triggered()
 {
@@ -240,40 +143,10 @@ void MainWindow::on_actionAbout_triggered()
 
 void MainWindow::setBlockFile(const QString &path)
 {
-    QFile file(path);
+    setWindowTitle("Blocks");
 
-    if (!file.open(QIODevice::ReadOnly)) {
-        QMessageBox::critical(this,
-                              tr("Error"),
-                              tr("Can't open file in read mode") +
-                              " " +
-                              QDir::toNativeSeparators(m_path));
+    if (!m_model->setPath(path))
         return;
-    }
-
-    const QByteArray data = file.readAll();
-
-    file.close();
-
-    //Driver 2 mission names
-    QDir dir(QFileInfo(path).absolutePath());
-    dir.cdUp();
-
-    file.setFileName(dir.path() + "/LANG/EN_MISSION.LTXT");
-
-    QString missionNames;
-
-    if (file.open(QIODevice::ReadOnly))
-        missionNames = file.readAll();
-
-    if (!m_model->setBlockData(data, missionNames)) {
-        QMessageBox::critical(this,
-                              tr("Error"),
-                              tr("Can't parse data") +
-                              " " +
-                              QDir::toNativeSeparators(path));
-        return;
-    }
 
     //Filter
     ui->comboBoxGameMode->clear();
@@ -283,13 +156,15 @@ void MainWindow::setBlockFile(const QString &path)
     int index = (value > -1 && value < ui->comboBoxGameMode->count()) ? value : 0;
 
     ui->comboBoxGameMode->setCurrentIndex(index);
-    emit ui->comboBoxGameMode->activated(ui->comboBoxGameMode->currentIndex());
-
-    //
-    m_path = path;
+    emit ui->comboBoxGameMode->activated(index);
 
     setWindowTitle(QDir::toNativeSeparators(path));
 
-    m_settings->setValue("block_path", m_path);
+    m_settings->setValue("block_path", path);
+}
+
+void MainWindow::showError(const QString &error)
+{
+    QMessageBox::critical(this, tr("Error"), error);
 }
 

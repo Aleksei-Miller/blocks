@@ -1,14 +1,12 @@
-/*!
- * \file
- * \brief MModel fro manipilate blk files.
- */
-
 #ifndef BLOCKTABLEMODEL_H
 #define BLOCKTABLEMODEL_H
 
 #include <QAbstractTableModel>
 
-#include <QDebug>
+#include <QFile>
+#include <QSaveFile>
+
+#include <QDir>
 
 #include "driverblock.h"
 #include "driver2block.h"
@@ -25,16 +23,23 @@ public:
     QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
 
     //
-    bool setMissionData(const QModelIndex &index, const QByteArray &data);
-    const QByteArray *missionData(const QModelIndex &index) const;
+    bool importMission(const QModelIndex &index, const QString &path);
+    bool exportMission(const QModelIndex &index, const QString &path);
 
-    QByteArray blockData() const;
-    bool setBlockData(const QByteArray &data, const QString &missionNames = "");
+    QString path() const;
+    bool setPath(const QString &path);
+
+    bool sync();
 
     Block blockType() const;
     const QStringList &gameModeList();
 
+signals:
+    void error(const QString &e);
+
 private:
+    QString m_path;
+
     AbstractBlock *m_currentBlock;
 
     DriverBlock *m_driverBlock;
@@ -43,6 +48,9 @@ private:
     Block m_blockType;
 
     QStringList m_gameModeList;
+
+    bool readFileData(const QString &path, QByteArray &buffer, bool silentMode = false);
+    bool writeFileData(const QString &path, const QByteArray &buffer);
 };
 
 #endif // BLOCKTABLEMODEL_H

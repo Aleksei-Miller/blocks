@@ -20,19 +20,42 @@ BlockTableModel::BlockTableModel(QObject *parent)
     m_driver2Block = new Driver2Block(this);
 }
 
-QByteArray BlockTableModel::blockData() const
+bool BlockTableModel::sync()
 {
-    return m_currentBlock->data();
+    if (m_path == "")
+        return false;
+
+    if (m_currentBlock == nullptr)
+        return false;
+
+    writeFileData(m_path, m_currentBlock->data());
+
+    return true;
 }
 
-bool BlockTableModel::setBlockData(const QByteArray &data, const QString &missionNames)
+bool BlockTableModel::setPath(const QString &path)
 {
     beginResetModel();
 
+    QByteArray blkData;
+
+    if (!readFileData(path, blkData))
+        return false;
+
+    m_path = path;
+
+    //Driver 2 mission names
+    QDir dir(QFileInfo(path).absolutePath());
+    dir.cdUp();
+
+    QByteArray missionNames;
+    readFileData(dir.path() + "/LANG/EN_MISSION.LTXT", missionNames, true);
+
+    //
     m_driverBlock->clearData();
     m_driver2Block->clearData();
 
-    if (Driver2Block::hasSignature(data)) {
+    if (Driver2Block::hasSignature(blkData)) {
         m_blockType = Block::Driver2;
         m_currentBlock = m_driver2Block;
 
@@ -43,15 +66,24 @@ bool BlockTableModel::setBlockData(const QByteArray &data, const QString &missio
         m_currentBlock = m_driverBlock;
     }
 
-    if (!m_currentBlock->setData(data)) {
+    if (!m_currentBlock->setData(blkData)) {
         m_currentBlock = nullptr;
 
         endResetModel();
+
+        emit error(tr("Can't parse data")
+                   + " "
+                   + QDir::toNativeSeparators(path));
         return false;
     }
 
     endResetModel();
     return true;
+}
+
+QString BlockTableModel::path() const
+{
+    return m_path;
 }
 
 Block BlockTableModel::blockType() const
@@ -108,17 +140,28 @@ QVariant BlockTableModel::data(const QModelIndex &index, int role) const
     return QVariant();
 }
 
-const QByteArray *BlockTableModel::missionData(const QModelIndex &index) const
-{
-    return index.isValid() ? &m_currentBlock->at(index.row()).data : nullptr;
-}
-
-bool BlockTableModel::setMissionData(const QModelIndex &index, const QByteArray &data)
+bool BlockTableModel::exportMission(const QModelIndex &index, const QString &path)
 {
     if (!index.isValid())
         return false;
 
-    if (!m_currentBlock->setMissionData(index.row(), data))
+    if (writeFileData(path, m_currentBlock->at(index.row()).data))
+        return false;
+
+    return true;
+}
+
+bool BlockTableModel::importMission(const QModelIndex &index, const QString &path)
+{
+    if (!index.isValid())
+        return false;
+
+    QByteArray missionData;
+
+    if (!readFileData(path, missionData))
+        return false;
+
+    if (!m_currentBlock->setMissionData(index.row(), missionData))
         return false;
 
     return true;
@@ -139,4 +182,51 @@ QVariant BlockTableModel::headerData(int section, Qt::Orientation orientation, i
     }
 
     return QVariant();
+}
+
+bool BlockTableModel::readFileData(const QString &path, QByteArray &buffer, bool silentMode)
+{
+    QFile file(path);
+
+    if (!file.open(QIODevice::ReadOnly)) {
+        if (!silentMode)
+            emit error(tr("Can't open file in read mode")
+                   + " "
+                   + QDir::toNativeSeparators(path));
+        return false;
+    }
+
+    buffer = file.readAll();
+
+    file.close();
+
+    return true;
+}
+
+bool BlockTableModel::writeFileData(const QString &path, const QByteArray &buffer)
+{
+    QSaveFile saveFile(path);
+
+    if (!saveFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        emit error(tr("Can't open file in write mode")
+                   + " "
+                   + QDir::toNativeSeparators(path));
+        return false;
+    }
+
+    if ((saveFile.write(buffer) == -1)) {
+        emit error(tr("Can't write file") +
+                   " " +
+                   QDir::toNativeSeparators(path));
+        return false;
+    }
+
+    if (!saveFile.commit()) {
+        emit error(tr("Can't commit changes") +
+                   " " +
+                   QDir::toNativeSeparators(path));
+        return false;
+    }
+
+    return true;
 }

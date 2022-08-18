@@ -41,17 +41,16 @@ private slots:
 
     void setBlockFile(const QString &path);
 
+    void showError(const QString &error);
 private:
     Ui::MainWindow *ui;
 
     BlockTableModel *m_model;
     QSortFilterProxyModel *m_proxyModel;
 
-    QString m_path;
-
     QSettings *m_settings;
 
     const QString product_version = "0.1";
-    const QString product_site = "";
+    const QString product_site = "https://github.com/Aleksei-Miller/blocks";
 };
 #endif // MAINWINDOW_H
