@@ -87,7 +87,6 @@ bool Driver2Block::setData(const QByteArray &data)
         MissionEntry entry = {};
 
         entry.id = 0;
-        entry.name = tr("Demo game");
         entry.mode = GameMode::None;
         entry.data = dataStream.device()->read(data.size() - startDataOffset);
 
