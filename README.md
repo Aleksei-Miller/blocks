@@ -3,9 +3,8 @@ A tool to extract, replace the missions of the games Driver: You Are The Wheelma
 
 <h3>Supported versions</h3>
   <ul>
-    <li>Driver: You Are The Wheelman</li>
-    <li>Driver 2: The Wheelman Is Back</li>
-    <li>Driver 2: Pre Release</li>
+    <li>Driver: You are the Wheelman</li>
+    <li>Driver 2: The Wheelman is Back</li>
     <li>Driver 2: Demo*</li>
   </ul>
 
