@@ -1,5 +1,5 @@
 # Blocks
-A tool to extract, replace the missions of the games Driver: You Are The Wheelman, Driver 2: The Wheelman Is Back.
+A tool to extract, replace the missions of the games Driver: You are the Wheelman, Driver 2: The Wheelman is Back.
 
 <h3>Supported versions</h3>
   <ul>
