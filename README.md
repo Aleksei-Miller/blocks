@@ -3,7 +3,7 @@ A tool to extract, replace the missions of the games Driver: You are the Wheelma
 
 <h3>Supported versions</h3>
   <ul>
-    <li>Driver: You are the Wheelman</li>
+    <li>Driver: You are the Wheelman(PlayStation 1)</li>
     <li>Driver 2: The Wheelman is Back</li>
     <li>Driver 2: Demo*</li>
   </ul>
